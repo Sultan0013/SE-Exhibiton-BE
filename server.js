@@ -7,13 +7,7 @@ const { log } = require("console");
 const app = express();
 const PORT = process.env.PORT || 4157;
 
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "https://mueseumexhibition.netlify.app"],
-    methods: ["GET"],
-    credentials: true,
-  })
-);
+app.use(cors());
 app.use(express.json());
 
 app.get("/api/all-artworks", async (req, res) => {
@@ -63,7 +57,7 @@ app.get("/api/all-artworks", async (req, res) => {
         vnaParams.id_technique = technique.vnaID;
       }
       if (sortOpt && sortOpt !== "any") {
-        vnaParams.order_by = sortOpt;
+        vnaParams.order_by = sortOpt.vna;
       }
       const [harvardResponse, vnaResponse] = await Promise.all([
         axios
