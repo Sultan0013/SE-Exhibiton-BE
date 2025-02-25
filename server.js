@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 4157;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://mueseumexhibition.netlify.app"],
     methods: ["GET"],
     credentials: true,
   })
