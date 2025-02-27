@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-const { log } = require("console");
 
 const app = express();
 const PORT = process.env.PORT || 4157;
@@ -59,18 +58,67 @@ app.get("/api/all-artworks", async (req, res) => {
       if (sortOpt && sortOpt !== "any") {
         vnaParams.order_by = sortOpt.vna;
       }
+
       const [harvardResponse, vnaResponse] = await Promise.all([
         axios
           .get(`${process.env.HARVARD_BASE_URL}/object`, {
             params: harvardParams,
           })
-          .catch(() => ({ data: { records: [] } })),
+          .catch((error) => {
+            if (error.response) {
+              if (error.response.status === 401) {
+                return {
+                  data: { records: [] },
+                  status: 401,
+                  error: "Unauthorized: Invalid Harvard API key",
+                };
+              }
+              if (error.response.status === 404) {
+                return {
+                  data: { records: [] },
+                  status: 404,
+                  error: "Not Found: Harvard API resource not found",
+                };
+              }
+            }
+            return { data: { records: [] } };
+          }),
         axios
           .get(`${process.env.VNA_BASE_URL}/objects/search`, {
             params: vnaParams,
           })
-          .catch(() => ({ data: { records: [] } })),
+          .catch((error) => {
+            if (error.response) {
+              if (error.response.status === 401) {
+                return {
+                  data: { records: [] },
+                  status: 401,
+                  error: "Unauthorized: Invalid V&A API key",
+                };
+              }
+              if (error.response.status === 404) {
+                return {
+                  data: { records: [] },
+                  status: 404,
+                  error: "Not Found: V&A API resource not found",
+                };
+              }
+            }
+            return { data: { records: [] } };
+          }),
       ]);
+
+      if (harvardResponse.status === 401 || vnaResponse.status === 401) {
+        return res.status(401).json({
+          error: "One or more APIs returned Unauthorized. Check API keys.",
+        });
+      }
+
+      if (harvardResponse.status === 404 && vnaResponse.status === 404) {
+        return res
+          .status(404)
+          .json({ error: "Resources not found on both APIs." });
+      }
 
       const harvardRecords =
         harvardResponse.data.records?.filter(
@@ -84,6 +132,12 @@ app.get("/api/all-artworks", async (req, res) => {
       currentPage++;
     }
 
+    if (artworks.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No artworks found for the given query" });
+    }
+
     res.json(artworks.slice(0, minResults));
   } catch (error) {
     console.error("All Artworks API Error:", error.message);
@@ -95,17 +149,36 @@ app.get("/api/artwork/:id", async (req, res) => {
   const { id } = req.params;
   try {
     let artworkDetails = null;
+
     if (id.startsWith("O") || id.startsWith("o")) {
-      const { data } = await axios.get(
-        `${process.env.VNA_BASE_URL}/object/${id}`
-      );
+      // V&A API handling
+      const response = await axios
+        .get(`${process.env.VNA_BASE_URL}/object/${id}`)
+        .catch((error) => {
+          if (error.response) {
+            if (error.response.status === 401) {
+              throw {
+                status: 401,
+                message: "Unauthorized: Invalid V&A API key",
+              };
+            }
+            if (error.response.status === 404) {
+              throw {
+                status: 404,
+                message: "Not Found: Artwork not found in V&A API",
+              };
+            }
+          }
+          throw error;
+        });
+      const { data } = response;
       const record = data.record;
       const meta = data.meta;
       artworkDetails = {
         id: record.systemNumber,
         image:
           meta.images?._iiif_image + "full/full/0/default.jpg" ||
-          "https://via.placeholder.com/400",
+          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMZG9cIFLAsgK_y9kGQ_HBZZ5ADp1GQq4OYQ&s",
         title: record.titles?.[0]?.title || "No Title Available",
         date: record.productionDates?.[0]?.date?.text || "Unknown",
         medium: record.materialsAndTechniques || "Not specified",
@@ -126,15 +199,33 @@ app.get("/api/artwork/:id", async (req, res) => {
         creditLine: record.creditLine || "No credit line",
       };
     } else {
-      const { data } = await axios.get(
-        `${process.env.HARVARD_BASE_URL}/object/${id}`,
-        {
+      const response = await axios
+        .get(`${process.env.HARVARD_BASE_URL}/object/${id}`, {
           params: { apikey: process.env.HARVARD_API_KEY },
-        }
-      );
+        })
+        .catch((error) => {
+          if (error.response) {
+            if (error.response.status === 401) {
+              throw {
+                status: 401,
+                message: "Unauthorized: Invalid Harvard API key",
+              };
+            }
+            if (error.response.status === 404) {
+              throw {
+                status: 404,
+                message: "Not Found: Artwork not found in Harvard API",
+              };
+            }
+          }
+          throw error;
+        });
+      const { data } = response;
       artworkDetails = {
         id: data.objectid || data.id,
-        image: data.primaryimageurl || "https://via.placeholder.com/400",
+        image:
+          data.primaryimageurl ||
+          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMZG9cIFLAsgK_y9kGQ_HBZZ5ADp1GQq4OYQ&s",
         title: data.title || data.titles?.[0]?.title || "No Title Available",
         date: data.dated || "Unknown",
         medium: data.medium || "Not specified",
@@ -148,11 +239,16 @@ app.get("/api/artwork/:id", async (req, res) => {
         creditLine: data.creditline || "No credit line",
       };
     }
+
     res.json(artworkDetails);
   } catch (error) {
-    console.error("Error fetching artwork by ID:", error.message);
-    res.status(500).json({ error: "Failed to fetch artwork details" });
+    console.error("Error fetching artwork by ID:", error.message || error);
+    if (error.status) {
+      res.status(error.status).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Failed to fetch artwork details" });
+    }
   }
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
