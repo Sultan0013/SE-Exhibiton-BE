@@ -8,7 +8,6 @@ const PORT = process.env.PORT || 4157;
 
 app.use(cors());
 app.use(express.json());
-
 app.get("/api/all-artworks", async (req, res) => {
   try {
     const {
@@ -23,8 +22,9 @@ app.get("/api/all-artworks", async (req, res) => {
 
     let artworks = [];
     let currentPage = parseInt(page, 10);
+    let hasNextPage = true;
 
-    while (artworks.length < minResults) {
+    while (artworks.length < minResults && hasNextPage) {
       let harvardParams = {
         q,
         page: currentPage,
@@ -108,18 +108,14 @@ app.get("/api/all-artworks", async (req, res) => {
           }),
       ]);
 
+      // If one of the APIs returned an unauthorized error, propagate that.
       if (harvardResponse.status === 401 || vnaResponse.status === 401) {
         return res.status(401).json({
           error: "One or more APIs returned Unauthorized. Check API keys.",
         });
       }
 
-      if (harvardResponse.status === 404 && vnaResponse.status === 404) {
-        return res
-          .status(404)
-          .json({ error: "Resources not found on both APIs." });
-      }
-
+      // We no longer throw an error if both return 404; an empty result is valid.
       const harvardRecords =
         harvardResponse.data.records?.filter(
           (art) => art.images && art.images.length > 0
@@ -127,24 +123,23 @@ app.get("/api/all-artworks", async (req, res) => {
       const vnaRecords = vnaResponse.data.records || [];
       const newResults = [...harvardRecords, ...vnaRecords];
 
-      if (newResults.length === 0) break;
+      if (newResults.length === 0) {
+        hasNextPage = false;
+        break;
+      }
+
       artworks = artworks.concat(newResults);
       currentPage++;
     }
 
-    if (artworks.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "No artworks found for the given query" });
-    }
-
-    res.json(artworks.slice(0, minResults));
+    // Always return a valid response—even if no artworks are found.
+    res.json({ artworks: artworks.slice(0, minResults), hasNextPage });
   } catch (error) {
-    console.error("All Artworks API Error:", error.message);
-    res.status(500).json({ error: "Failed to fetch artworks from both APIs" });
+    res.status(500).json({
+      error: error.message || "Failed to fetch artworks from both APIs",
+    });
   }
 });
-
 app.get("/api/artwork/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -163,14 +158,15 @@ app.get("/api/artwork/:id", async (req, res) => {
               };
             }
             if (error.response.status === 404) {
-              throw {
-                status: 404,
-                message: "Not Found: Artwork not found in V&A API",
-              };
+              // Return empty object for valid "no data" case.
+              return { data: {} };
             }
           }
           throw error;
         });
+      if (!response.data.record) {
+        return res.json({}); // No artwork found.
+      }
       const { data } = response;
       const record = data.record;
       const meta = data.meta;
@@ -199,6 +195,7 @@ app.get("/api/artwork/:id", async (req, res) => {
         creditLine: record.creditLine || "No credit line",
       };
     } else {
+      // Harvard API handling
       const response = await axios
         .get(`${process.env.HARVARD_BASE_URL}/object/${id}`, {
           params: { apikey: process.env.HARVARD_API_KEY },
@@ -212,14 +209,14 @@ app.get("/api/artwork/:id", async (req, res) => {
               };
             }
             if (error.response.status === 404) {
-              throw {
-                status: 404,
-                message: "Not Found: Artwork not found in Harvard API",
-              };
+              return { data: {} };
             }
           }
           throw error;
         });
+      if (!response.data.title && !response.data.objectid) {
+        return res.json({});
+      }
       const { data } = response;
       artworkDetails = {
         id: data.objectid || data.id,
@@ -242,13 +239,16 @@ app.get("/api/artwork/:id", async (req, res) => {
 
     res.json(artworkDetails);
   } catch (error) {
-    console.error("Error fetching artwork by ID:", error.message || error);
     if (error.status) {
       res.status(error.status).json({ error: error.message });
     } else {
-      res.status(500).json({ error: "Failed to fetch artwork details" });
+      res
+        .status(500)
+        .json({ error: error.message || "Failed to fetch artwork details" });
     }
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log("listening on port " + { PORT });
+});
