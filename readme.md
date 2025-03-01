@@ -30,9 +30,9 @@ The back-end of the Exhibition Curation Platform connects to at least two museum
    git clone https://github.com/Sultan0013/SE-Exhibiton-BE
    cd SE-Exhibiton-BE
    npm install
-```markdown
 
-----
+
+
 ## 🔧 Set Up the Environment File
 
 **Step 1:** Create a copy of the sample environment file:
