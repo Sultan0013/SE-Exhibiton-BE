@@ -8,6 +8,10 @@ const PORT = process.env.PORT || 4157;
 
 app.use(cors());
 app.use(express.json());
+app.get("/", (req, res) => {
+  res.send("Welcome to the Exhibition Curation Platform API! 👑🚀");
+});
+
 app.get("/api/all-artworks", async (req, res) => {
   try {
     const {
