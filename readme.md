@@ -1,8 +1,8 @@
 # Exhibition Curation Platform - Back-End 🚀
 
-Hello Sultan! 👑
 
-Welcome to the back-end of the Exhibition Curation Platform. This service powers our interactive art exhibition platform by securely integrating multiple museum APIs and handling all data operations with robust error handling and user feedback.
+
+Welcome to the back-end of the Virtual Exhibition Platform. This service powers our interactive art exhibition platform by securely integrating multiple museum APIs and handling all data operations with robust error handling and user feedback.
 
 ---
 
