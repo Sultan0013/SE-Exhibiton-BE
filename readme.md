@@ -31,13 +31,6 @@ The back-end of the Exhibition Curation Platform connects to at least two museum
    cd SE-Exhibiton-BE
    npm install
 ```markdown
-----
-## 🚀 Install Dependencies
-
-**Bash Command:**
-```bash
-npm install
-```
 
 ----
 ## 🔧 Set Up the Environment File
@@ -55,7 +48,7 @@ VNA_BASE_URL=https://api.vam.ac.uk/v2
 
 **Important:**  
 - Replace `YOUR_HARVARD_API_KEY_HERE` with your own Harvard API key.  
-- You can obtain a free API key by signing up at the [Harvard Art Museums API website](https://www.harvardartmuseums.org/collections/api).  
+- You can obtain a free API key by signing up at the [Harvard Art Museums API website](https://docs.google.com/forms/d/e/1FAIpQLSfkmEBqH76HLMMiCC-GPPnhcvHC9aJS86E32dOd0Z8MpY2rvQ/viewform).  
 - The other environment variables (`PORT`, `HARVARD_BASE_URL`, and `VNA_BASE_URL`) are pre-configured.
 
 ----
@@ -72,7 +65,13 @@ The server should now be running at [http://localhost:4157](http://localhost:415
 ----
 ## 🔗 Links
 
-- **Back-End GitHub Repository:** Exhibition Curation Back-End
-- **Hosted Back-End:** Live Back-End
+- **Front-end GitHub Repository:** [Exhibition Curation Back-End](https://github.com/Sultan0013/Virtual-Exhibiton)
+- **Hosted Back-End:** [Live Back-End](https://se-exhibiton-be-dawn-grass-6783.fly.dev/)
+
+   The back-end provides two primary GET endpoints for accessing artwork data:
+   **GET /api/all-artworks**: Retrieves a list of artworks from the Harvard Art Museums API and the V&A API.
+   **GET /api/artwork/:id**: Retrieves detailed information for a specific artwork.
+
+- **Hosted Front-End:** [Live Front-End](https://mueseumexhibition.netlify.app/)
 
 
