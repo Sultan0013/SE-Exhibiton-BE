@@ -110,14 +110,12 @@ app.get("/api/all-artworks", async (req, res) => {
           }),
       ]);
 
-      // If one of the APIs returned an unauthorized error, propagate that.
       if (harvardResponse.status === 401 || vnaResponse.status === 401) {
         return res.status(401).json({
           error: "One or more APIs returned Unauthorized. Check API keys.",
         });
       }
 
-      // We no longer throw an error if both return 404; an empty result is valid.
       const harvardRecords =
         harvardResponse.data.records?.filter(
           (art) => art.images && art.images.length > 0
@@ -134,7 +132,6 @@ app.get("/api/all-artworks", async (req, res) => {
       currentPage++;
     }
 
-    // Always return a valid response—even if no artworks are found.
     res.json({ artworks: artworks.slice(0, minResults), hasNextPage });
   } catch (error) {
     res.status(500).json({
@@ -148,7 +145,6 @@ app.get("/api/artwork/:id", async (req, res) => {
     let artworkDetails = null;
 
     if (id.startsWith("O") || id.startsWith("o")) {
-      // V&A API handling
       const response = await axios
         .get(`${process.env.VNA_BASE_URL}/object/${id}`)
         .catch((error) => {
@@ -160,14 +156,13 @@ app.get("/api/artwork/:id", async (req, res) => {
               };
             }
             if (error.response.status === 404) {
-              // Return empty object for valid "no data" case.
               return { data: {} };
             }
           }
           throw error;
         });
       if (!response.data.record) {
-        return res.json({}); // No artwork found.
+        return res.json({});
       }
       const { data } = response;
       const record = data.record;
@@ -197,7 +192,6 @@ app.get("/api/artwork/:id", async (req, res) => {
         creditLine: record.creditLine || "No credit line",
       };
     } else {
-      // Harvard API handling
       const response = await axios
         .get(`${process.env.HARVARD_BASE_URL}/object/${id}`, {
           params: { apikey: process.env.HARVARD_API_KEY },
