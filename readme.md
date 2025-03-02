@@ -1,4 +1,4 @@
-# Exhibition Curation Platform - Back-End 🚀
+# Virtual Exhibition - Back-End 🚀
 
 Welcome to the back-end of the Virtual Exhibition Platform. This service powers our interactive art exhibition platform by securely integrating multiple museum APIs and handling all data operations with robust error handling and user feedback.
 
@@ -66,7 +66,7 @@ The server should now be running at [http://localhost:4157](http://localhost:415
 
 ## 🔗 Links
 
-- **Front-end GitHub Repository:** [Exhibition Curation Back-End](https://github.com/Sultan0013/Virtual-Exhibiton)
+- **Front-end GitHub Repository:** [Virtual Exhibition Front-End](https://github.com/Sultan0013/Virtual-Exhibiton)
 - **Hosted Back-End:** [Live Back-End](https://se-exhibiton-be-dawn-grass-6783.fly.dev/)
 
   The back-end provides two primary GET endpoints for accessing artwork data:
